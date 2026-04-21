@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use App\Models\Role;
 
 class User extends Authenticatable
 {
@@ -45,6 +46,8 @@ class User extends Authenticatable
 
         static::creating(function ($user) {
             $user->uuid = (string) Str::uuid();
+
+            $user->global_code = 'USR-' . random_int(100000, 999999);
         });
     }
     public function roles()
