@@ -25,6 +25,8 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'uuid' => (string) Str::uuid(),
+            'global_code' => strtoupper(fake()->unique()->bothify('USR###??')),
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
