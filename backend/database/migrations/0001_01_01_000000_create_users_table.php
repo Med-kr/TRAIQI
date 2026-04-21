@@ -15,7 +15,8 @@ return new class extends Migration {
             $table->uuid('uuid')->unique();
             $table->string('global_code')->unique();
             $table->string('name');
-            $table->string('email')->unique()->nullable();
+            $table->string('email')->unique()->safeEmail();
+            $table->timestamp('email_verified_at')->null;
             $table->string('password')->nullable();
             $table->foreignId('school_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('level_id')->nullable()->constrained();
