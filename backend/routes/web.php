@@ -56,4 +56,8 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
+Route::get('/admin', function () {
+    return "Admin Dashboard";
+})->middleware(['auth', 'admin']);
+
 require __DIR__ . '/auth.php';
