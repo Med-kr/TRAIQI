@@ -12,7 +12,7 @@ class Grade extends Model
     protected $fillable = [
         'evaluation_id',
         'student_id',
-        'score',
+        'value',
     ];
 
     public function evaluation()
@@ -22,7 +22,7 @@ class Grade extends Model
 
     public function student()
     {
-        return $this->belongsTo(StudentProfile::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_id');
     }
 
     public function comments()

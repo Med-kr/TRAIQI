@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -42,10 +44,14 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $studentRole = Role::firstOrCreate(['name' => 'student']);
+        $user->roles()->syncWithoutDetaching([$studentRole->id]);
+        StudentProfile::firstOrCreate(['user_id' => $user->id]);
+
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route($user->dashboardRoute(), absolute: false));
     }
 }

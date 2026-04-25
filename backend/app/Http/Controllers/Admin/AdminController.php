@@ -3,23 +3,35 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Evaluation;
 use App\Models\Grade;
+use App\Models\Notification;
+use App\Models\ReviewRequest;
+use App\Models\User;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
-        return response()->json([
-            'users' => User::count(),
-            'evaluations' => Evaluation::count(),
-            'grades' => Grade::count(),
+        $users = User::with('roles')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('dashboards.admin', [
+            'users' => $users,
+            'usersCount' => User::count(),
+            'evaluationsCount' => Evaluation::count(),
+            'gradesCount' => Grade::count(),
+            'notificationsCount' => Notification::count(),
+            'reviewRequestsCount' => ReviewRequest::count(),
         ]);
     }
 
     public function users()
     {
-        return User::with('roles')->get();
+        return view('dashboards.admin-users', [
+            'users' => User::with('roles')->latest()->get(),
+        ]);
     }
 }

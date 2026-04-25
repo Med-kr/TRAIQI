@@ -2,46 +2,45 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\StudentProfile;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $userRole = Role::firstOrCreate(['name' => 'user']);
+        $adminRole = Role::firstOrCreate(['name' => 'administration']);
+        $studentRole = Role::firstOrCreate(['name' => 'student']);
 
         $admin = User::updateOrCreate(
+            ['email' => 'admin@test.com'],
             [
-                'uuid' => Str::uuid(),
+                'uuid' => (string) Str::uuid(),
                 'global_code' => 'ADM001',
                 'name' => 'Admin',
-                'email' => 'admin@test.com',
                 'password' => Hash::make('123456'),
-                'role' => 'admin',
                 'school_id' => null,
-                'level_id' => null
+                'level_id' => null,
             ]
         );
         $admin->roles()->syncWithoutDetaching([$adminRole->id]);
 
         $user = User::updateOrCreate(
+            ['email' => 'user@test.com'],
             [
-                'uuid' => Str::uuid(),
+                'uuid' => (string) Str::uuid(),
                 'global_code' => 'USR001',
                 'name' => 'User',
-                'email' => 'user@test.com',
                 'password' => Hash::make('123456'),
-                'role' => 'user',
                 'school_id' => null,
-                'level_id' => null
+                'level_id' => null,
             ]
         );
-        $user->roles()->syncWithoutDetaching([$userRole->id]);
+        $user->roles()->syncWithoutDetaching([$studentRole->id]);
+        StudentProfile::firstOrCreate(['user_id' => $user->id]);
     }
 }

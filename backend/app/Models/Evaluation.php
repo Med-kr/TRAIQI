@@ -13,6 +13,7 @@ class Evaluation extends Model
         'title',
         'classroom_id',
         'subject_id',
+        'teacher_id',
         'date',
     ];
 
@@ -24,6 +25,11 @@ class Evaluation extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function teacher()
+    {
+        return $this->belongsTo(User::class, 'teacher_id');
     }
 
     public function grades()

@@ -24,7 +24,7 @@ class ReportController extends Controller
     // moyenne générale
     public function averageGrades()
     {
-        $average = Grade::avg('grade');
+        $average = Grade::avg('value');
 
         return response()->json([
             'average_grade' => round($average, 2)

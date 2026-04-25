@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Grade;
 use App\Models\Evaluation;
 
@@ -11,13 +10,25 @@ class StudentController extends Controller
 {
     public function dashboard()
     {
-        $student = auth()->user()->studentProfile;
+        $user = auth()->user();
+        $student = $user->studentProfile;
 
-        $grades = Grade::where('student_id', $student->id)
-            ->with('evaluation')
+        $grades = Grade::where('student_id', $user->id)
+            ->with(['evaluation.subject', 'comments'])
+            ->latest()
             ->get();
 
-        return response()->json($grades);
+        $evaluations = Evaluation::where('classroom_id', $student?->classroom_id)
+            ->with('subject')
+            ->latest('date')
+            ->get();
+
+        return view('dashboards.student', [
+            'student' => $student,
+            'grades' => $grades,
+            'evaluations' => $evaluations,
+            'averageGrade' => $grades->avg('value'),
+        ]);
     }
 
     public function evaluations()

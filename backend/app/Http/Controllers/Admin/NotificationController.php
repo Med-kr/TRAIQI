@@ -19,13 +19,13 @@ class NotificationController extends Controller
     {
         $request->validate([
             'title' => 'required',
-            'message' => 'required',
+            'body' => 'required',
             'user_id' => 'nullable'
         ]);
 
         return Notification::create([
             'title' => $request->title,
-            'message' => $request->message,
+            'body' => $request->body,
             'user_id' => $request->user_id,
         ]);
     }
@@ -34,7 +34,7 @@ class NotificationController extends Controller
     public function markAsRead($id)
     {
         $notification = Notification::findOrFail($id);
-        $notification->update(['read_at' => now()]);
+        $notification->update(['read' => true]);
 
         return response()->json(['message' => 'Marked as read']);
     }

@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Grade;
-use App\Models\StudentProfile;
 
 class GradeController extends Controller
 {
     public function store(Request $request, $evaluationId)
     {
         $request->validate([
-            'grades' => 'required|array'
+            'grades' => ['required', 'array'],
+            'grades.*' => ['nullable', 'numeric', 'min:0', 'max:20'],
         ]);
 
         foreach ($request->grades as $studentId => $value) {
@@ -22,7 +22,7 @@ class GradeController extends Controller
                     'student_id' => $studentId
                 ],
                 [
-                    'grade' => $value
+                    'value' => $value
                 ]
             );
         }

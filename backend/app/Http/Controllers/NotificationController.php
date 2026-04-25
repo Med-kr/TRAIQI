@@ -20,13 +20,13 @@ class NotificationController extends Controller
     {
         $request->validate([
             'title' => 'required',
-            'message' => 'required',
+            'body' => 'required',
             'user_id' => 'required'
         ]);
 
         return Notification::create([
             'title' => $request->title,
-            'message' => $request->message,
+            'body' => $request->body,
             'user_id' => $request->user_id,
         ]);
     }
@@ -38,7 +38,7 @@ class NotificationController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        $notif->update(['read_at' => now()]);
+        $notif->update(['read' => true]);
 
         return response()->json(['message' => 'read']);
     }

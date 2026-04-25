@@ -16,14 +16,12 @@ return new class extends Migration {
             $table->string('global_code')->unique();
             $table->string('name');
             $table->string('email')->unique()->safeEmail();
-            $table->timestamp('email_verified_at')->null;
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->foreignId('school_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('level_id')->nullable()->constrained();
             $table->timestamps();
         });
-
-
     }
 
     /**
