@@ -16,6 +16,18 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        if ($request->user()->hasRole('student')) {
+            return view('profile.student-edit', [
+                'user' => $request->user()->load('studentProfile.classroom'),
+            ]);
+        }
+
+        if ($request->user()->hasRole('parent')) {
+            return view('profile.parent-edit', [
+                'user' => $request->user()->load('parentProfile'),
+            ]);
+        }
+
         return view('profile.edit', [
             'user' => $request->user(),
         ]);
@@ -26,13 +38,34 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $validated = $request->validated();
+        $profileData = [
+            'phone' => $validated['phone'] ?? null,
+        ];
+
+        unset($validated['phone']);
+
+        $request->user()->fill($validated);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }
 
         $request->user()->save();
+
+        if ($request->user()->hasRole('parent')) {
+            $request->user()->parentProfile()->updateOrCreate(
+                ['user_id' => $request->user()->id],
+                $profileData
+            );
+        }
+
+        if ($request->user()->hasRole('student')) {
+            $request->user()->studentProfile()->updateOrCreate(
+                ['user_id' => $request->user()->id],
+                $profileData
+            );
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

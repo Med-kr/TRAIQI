@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Espace élève') | Traiqi</title>
+    @include('partials.traiqi-boot')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/admin-overrides.css') . '?v=' . filemtime(public_path('css/admin-overrides.css')) }}">
 </head>
 <body class="admin-shell min-h-screen antialiased" x-data x-init="$store.traiqi.init()">
     <div class="relative min-h-screen lg:grid lg:grid-cols-[18rem_minmax(0,1fr)]">

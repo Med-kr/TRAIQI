@@ -3,14 +3,6 @@
 @section('title', 'Imports Excel')
 
 @section('content')
-    @php
-        $history = [
-            ['file' => 'eleves_terminale_sciences.xlsx', 'type' => 'Élèves', 'date' => '27 avr. 2026 - 10:30', 'status' => 'Terminé', 'rows' => 148, 'errors' => 0],
-            ['file' => 'parents_cycle_college.xlsx', 'type' => 'Parents', 'date' => '26 avr. 2026 - 16:10', 'status' => 'Partiel', 'rows' => 96, 'errors' => 4],
-            ['file' => 'enseignants_semestre_2.xlsx', 'type' => 'Enseignants', 'date' => '25 avr. 2026 - 09:05', 'status' => 'Terminé', 'rows' => 22, 'errors' => 0],
-        ];
-    @endphp
-
     <section class="space-y-6 lg:space-y-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -21,29 +13,69 @@
         </div>
 
         <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <section class="admin-card p-6 sm:p-7">
-                <div class="rounded-[1.75rem] border-2 border-dashed border-[#0A4FAF]/18 bg-slate-50 px-6 py-10 text-center">
-                    <span class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#0A4FAF] shadow-sm">
-                        <x-traiqi-icon name="upload" class="h-7 w-7" />
-                    </span>
-                    <h2 class="mt-5 text-2xl font-semibold text-slate-950">Glissez vos fichiers ici</h2>
-                    <p class="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600">Déposez un fichier Excel ou choisissez-le manuellement pour lancer un import contrôlé et documenté.</p>
-                    <div class="mt-6">
-                        <x-button href="#">Choisir un fichier</x-button>
+            <section class="admin-card p-6 sm:p-7" x-data="{ fileName: '', type: 'students' }">
+                <form method="POST" action="{{ route('admin.imports.store') }}" enctype="multipart/form-data" class="space-y-6">
+                    @csrf
+
+                    <label for="import-file" class="block cursor-pointer rounded-[1.75rem] border-2 border-dashed border-[#0A4FAF]/18 bg-slate-50 px-6 py-10 text-center transition hover:border-[#0A4FAF]/45">
+                        <span class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#0A4FAF] shadow-sm">
+                            <x-traiqi-icon name="upload" class="h-7 w-7" />
+                        </span>
+                        <span class="mt-5 block text-2xl font-semibold text-slate-950">Choisissez votre fichier Excel</span>
+                        <span class="mx-auto mt-3 block max-w-xl text-sm leading-7 text-slate-600">Formats acceptés: CSV, TXT ou XLSX. La première ligne doit contenir les colonnes attendues.</span>
+                        <span class="mt-5 inline-flex rounded-full bg-[#083B82] px-5 py-3 text-sm font-semibold text-white shadow-sm">Ouvrir l’explorateur</span>
+                        <span class="mt-3 block text-sm font-semibold text-[#0A4FAF]" x-text="fileName || 'Aucun fichier sélectionné'"></span>
+                    </label>
+
+                    <input id="import-file" name="file" type="file" accept=".csv,.txt,.xlsx" class="sr-only" required @change="fileName = $event.target.files[0]?.name || ''">
+                    @error('file')
+                        <p class="text-sm font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
+
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-semibold text-slate-700">Type d’import</span>
+                            <select name="type" class="admin-toolbar-input" x-model="type" required>
+                                <option value="students">Élèves</option>
+                                <option value="parents">Parents</option>
+                                <option value="teachers">Enseignants</option>
+                            </select>
+                        </label>
+
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-semibold text-slate-700">École</span>
+                            <select name="school_id" class="admin-toolbar-input">
+                                @foreach($schools as $school)
+                                    <option value="{{ $school->id }}">{{ $school->name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+
+                        <label class="block">
+                            <span class="mb-2 block text-sm font-semibold text-slate-700">Max élèves / classe</span>
+                            <input name="max_students_per_class" type="number" min="1" max="60" value="25" class="admin-toolbar-input">
+                        </label>
                     </div>
-                </div>
 
-                <div class="mt-6 grid gap-3 md:grid-cols-3">
-                    <x-button href="#" class="w-full justify-center">Élèves</x-button>
-                    <x-button href="#" variant="secondary" class="w-full justify-center">Parents</x-button>
-                    <x-button href="#" variant="dark" class="w-full justify-center">Enseignants</x-button>
-                </div>
+                    <div class="rounded-2xl bg-slate-50 p-4">
+                        <p class="font-semibold text-slate-950">Colonnes attendues</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($expectedColumns as $type => $columns)
+                                <template x-if="type === '{{ $type }}'">
+                                    <div class="contents">
+                                        @foreach($columns as $column)
+                                            <span class="admin-pill is-neutral">{{ $column }}</span>
+                                        @endforeach
+                                    </div>
+                                </template>
+                            @endforeach
+                        </div>
+                    </div>
 
-                <div class="mt-6 grid gap-3 sm:grid-cols-3">
-                    <x-button href="#" variant="secondary" size="sm" class="w-full justify-center">Template élèves</x-button>
-                    <x-button href="#" variant="secondary" size="sm" class="w-full justify-center">Template parents</x-button>
-                    <x-button href="#" variant="secondary" size="sm" class="w-full justify-center">Template enseignants</x-button>
-                </div>
+                    <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-[#0A4FAF] to-[#18A558] px-5 py-3 text-sm font-semibold text-white shadow-sm">
+                        Lancer l’import
+                    </button>
+                </form>
             </section>
 
             <section class="admin-card p-6 sm:p-7">
@@ -85,19 +117,28 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @foreach ($history as $item)
+                        @forelse ($imports as $item)
                             <tr class="transition hover:bg-slate-50/80">
-                                <td class="font-semibold text-slate-950">{{ $item['file'] }}</td>
-                                <td>{{ $item['type'] }}</td>
-                                <td>{{ $item['date'] }}</td>
-                                <td><span class="admin-pill {{ $item['status'] === 'Terminé' ? 'is-success' : 'is-warning' }}">{{ $item['status'] }}</span></td>
-                                <td>{{ $item['rows'] }}</td>
-                                <td>{{ $item['errors'] }}</td>
+                                <td class="font-semibold text-slate-950">{{ $item->file_name }}</td>
+                                <td>{{ $item->type }}</td>
+                                <td>{{ $item->created_at?->format('d/m/Y H:i') }}</td>
+                                <td><span class="admin-pill {{ $item->status === 'completed' ? 'is-success' : 'is-warning' }}">{{ $item->status }}</span></td>
+                                <td>{{ $item->processed_rows }}</td>
+                                <td>{{ count($item->summary['errors'] ?? []) }}</td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-500">Aucun import exécuté pour le moment.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
+            @if($imports->hasPages())
+                <div class="border-t border-slate-100 px-4 py-4">
+                    {{ $imports->links() }}
+                </div>
+            @endif
         </section>
     </section>
 @endsection

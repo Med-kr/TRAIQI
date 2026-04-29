@@ -1,20 +1,21 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
+@extends('layouts.teacher')
+
+@section('title', 'Notes évaluation')
+
+@section('content')
+    <section class="space-y-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Evaluation Grades</h2>
-                <p class="mt-1 text-sm text-gray-500">
-                    {{ $evaluation->title }} | {{ $evaluation->classroom?->name }} | {{ $evaluation->subject?->name }}
+                <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#0A4FAF]">Saisie des notes</p>
+                <h1 class="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">{{ $evaluation->title }}</h1>
+                <p class="mt-2 text-sm text-slate-500">
+                    {{ $evaluation->classroom?->name }} | {{ $evaluation->subject?->name }}
                 </p>
             </div>
-            <a href="{{ route('teacher.dashboard') }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700">
-                Back to dashboard
-            </a>
+            <x-button href="{{ route('teacher.grades.index') }}" variant="secondary">Retour</x-button>
         </div>
-    </x-slot>
 
-    <div class="py-10">
-        <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-6">
             <div class="rounded-xl bg-white p-6 shadow-sm">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -164,5 +165,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+    </section>
+@endsection

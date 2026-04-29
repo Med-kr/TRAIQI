@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+    <div class="grid items-start gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <x-ui.card>
             <p class="text-label">{{ __('ui.nav.profile') }}</p>
             <div class="mt-5 flex items-center gap-4">

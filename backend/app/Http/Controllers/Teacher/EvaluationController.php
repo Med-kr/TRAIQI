@@ -10,6 +10,7 @@ use App\Models\Notification;
 use App\Models\TeacherAssignment;
 use Illuminate\Http\Request;
 use App\Models\Evaluation;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class EvaluationController extends Controller
@@ -18,51 +19,89 @@ class EvaluationController extends Controller
     {
         $teacher = auth()->user();
 
-        $evaluations = Evaluation::forSchoolContext($teacher)
-            ->where('teacher_id', auth()->id())
-            ->with(['classroom', 'subject', 'grades', 'classroom.students.user'])
-            ->latest('date')
-            ->get();
-
-        $assignments = TeacherAssignment::forSchoolContext($teacher)
-            ->where('teacher_id', auth()->id())
-            ->with(['classroom.students.user', 'subject'])
-            ->get();
-
-        $gradesCount = Grade::forSchoolContext($teacher)
-            ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id))
-            ->count();
-
-        $totalStudentsAcrossAssignments = $assignments->sum(fn ($assignment) => $assignment->classroom?->students?->count() ?? 0);
-        $remainingCopies = $evaluations->sum(function ($evaluation) {
-            $studentCount = $evaluation->classroom?->students?->count() ?? 0;
-
-            return max($studentCount - $evaluation->grades->count(), 0);
-        });
-
-        $studentsInDifficulty = Grade::forSchoolContext($teacher)
-            ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id))
-            ->where('value', '<', 10)
-            ->distinct('student_id')
-            ->count('student_id');
-
-        $classAverage = round(
-            Grade::forSchoolContext($teacher)
-                ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id))
-                ->avg('value') ?? 0,
-            2
-        );
+        $assignments = $this->teacherAssignments($teacher);
+        $evaluations = $this->teacherEvaluations($teacher);
+        $stats = $this->teacherStats($teacher, $assignments, $evaluations);
 
         return view('teacher.dashboard', [
             'evaluations' => $evaluations,
             'assignments' => $assignments,
-            'evaluationsCount' => $evaluations->count(),
-            'assignmentsCount' => $assignments->count(),
-            'gradesCount' => $gradesCount,
-            'remainingCopiesCount' => $remainingCopies,
-            'studentsInDifficultyCount' => $studentsInDifficulty,
-            'trackedStudentsCount' => $totalStudentsAcrossAssignments,
-            'classAverage' => $classAverage,
+            ...$stats,
+        ]);
+    }
+
+    public function classes()
+    {
+        $teacher = auth()->user();
+
+        $assignments = $this->teacherAssignments($teacher);
+        $evaluations = $this->teacherEvaluations($teacher);
+
+        return view('teacher.classes.index', [
+            'assignments' => $assignments,
+            'evaluations' => $evaluations,
+        ]);
+    }
+
+    public function students()
+    {
+        $teacher = auth()->user();
+        $assignments = $this->teacherAssignments($teacher);
+        $classroomIds = $assignments->pluck('classroom_id')->unique()->values();
+
+        $students = $assignments
+            ->flatMap(fn ($assignment) => $assignment->classroom?->students ?? collect())
+            ->unique('user_id')
+            ->values();
+
+        $grades = Grade::forSchoolContext($teacher)
+            ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id))
+            ->whereIn('student_id', $students->pluck('user_id'))
+            ->with(['evaluation.subject'])
+            ->latest()
+            ->get()
+            ->groupBy('student_id');
+
+        return view('teacher.students.index', [
+            'assignments' => $assignments,
+            'classroomIds' => $classroomIds,
+            'students' => $students,
+            'gradesByStudent' => $grades,
+        ]);
+    }
+
+    public function create()
+    {
+        return view('teacher.evaluations.create', [
+            'assignments' => $this->teacherAssignments(auth()->user()),
+        ]);
+    }
+
+    public function grades()
+    {
+        $teacher = auth()->user();
+
+        return view('teacher.grades.index', [
+            'evaluations' => $this->teacherEvaluations($teacher),
+            'assignments' => $this->teacherAssignments($teacher),
+        ]);
+    }
+
+    public function statistics()
+    {
+        $teacher = auth()->user();
+        $assignments = $this->teacherAssignments($teacher);
+        $evaluations = $this->teacherEvaluations($teacher);
+        $grades = Grade::forSchoolContext($teacher)
+            ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id))
+            ->with(['student', 'evaluation'])
+            ->get();
+
+        return view('teacher.statistics.index', [
+            'assignments' => $assignments,
+            'evaluations' => $evaluations,
+            'grades' => $grades,
+            ...$this->teacherStats($teacher, $assignments, $evaluations),
         ]);
     }
 
@@ -185,5 +224,57 @@ class EvaluationController extends Controller
         return redirect()
             ->route('teacher.grades.show', $evaluation->id)
             ->with('status', 'Evaluation locked successfully.');
+    }
+
+    private function teacherAssignments($teacher): Collection
+    {
+        return TeacherAssignment::forSchoolContext($teacher)
+            ->where('teacher_id', $teacher->id)
+            ->with(['classroom.level', 'classroom.students.user', 'subject'])
+            ->orderBy('classroom_id')
+            ->get();
+    }
+
+    private function teacherEvaluations($teacher): Collection
+    {
+        return Evaluation::forSchoolContext($teacher)
+            ->where('teacher_id', $teacher->id)
+            ->with(['classroom.students.user', 'subject', 'grades'])
+            ->latest('date')
+            ->get();
+    }
+
+    private function teacherStats($teacher, Collection $assignments, Collection $evaluations): array
+    {
+        $gradesQuery = Grade::forSchoolContext($teacher)
+            ->whereHas('evaluation', fn ($query) => $query->where('teacher_id', $teacher->id));
+
+        $gradesCount = (clone $gradesQuery)->count();
+        $studentsInDifficulty = (clone $gradesQuery)
+            ->where('value', '<', 10)
+            ->distinct('student_id')
+            ->count('student_id');
+
+        $classAverage = round((clone $gradesQuery)->avg('value') ?? 0, 2);
+        $totalStudents = $assignments
+            ->flatMap(fn ($assignment) => $assignment->classroom?->students ?? collect())
+            ->unique('user_id')
+            ->count();
+
+        $remainingCopies = $evaluations->sum(function ($evaluation) {
+            $studentCount = $evaluation->classroom?->students?->count() ?? 0;
+
+            return max($studentCount - $evaluation->grades->count(), 0);
+        });
+
+        return [
+            'evaluationsCount' => $evaluations->count(),
+            'assignmentsCount' => $assignments->count(),
+            'gradesCount' => $gradesCount,
+            'remainingCopiesCount' => $remainingCopies,
+            'studentsInDifficultyCount' => $studentsInDifficulty,
+            'trackedStudentsCount' => $totalStudents,
+            'classAverage' => $classAverage,
+        ];
     }
 }

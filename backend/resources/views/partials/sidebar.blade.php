@@ -15,7 +15,7 @@
     >
         <div class="flex items-center justify-between gap-3 pb-6">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 p-2 backdrop-blur">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg">
                     <x-application-logo class="h-8 w-8" />
                 </span>
                 <div>

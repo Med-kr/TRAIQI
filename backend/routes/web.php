@@ -110,22 +110,35 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('teacher')->middleware(['auth', 'role:teacher'])->group(function () {
     Route::get('/dashboard', [EvaluationController::class, 'index'])->name('teacher.dashboard');
+    Route::get('/classes', [EvaluationController::class, 'classes'])->name('teacher.classes.index');
+    Route::get('/students', [EvaluationController::class, 'students'])->name('teacher.students.index');
     Route::get('/evaluations', [EvaluationController::class, 'index'])->name('teacher.evaluations.index');
+    Route::get('/evaluations/create', [EvaluationController::class, 'create'])->name('teacher.evaluations.create');
     Route::post('/evaluations', [EvaluationController::class, 'store'])->name('teacher.evaluations.store');
     Route::post('/evaluations/{id}/publish', [EvaluationController::class, 'publish'])->name('teacher.evaluations.publish');
     Route::post('/evaluations/{id}/lock', [EvaluationController::class, 'lock'])->name('teacher.evaluations.lock');
+    Route::get('/grades', [EvaluationController::class, 'grades'])->name('teacher.grades.index');
     Route::post('/evaluations/{id}/grades', [GradeController::class, 'store'])->name('teacher.grades.store');
     Route::get('/evaluations/{id}/grades', [GradeController::class, 'show'])->name('teacher.grades.show');
     Route::post('/grades/comments', [GradeCommentController::class, 'store'])->name('teacher.grades.comments.store');
+    Route::get('/statistics', [EvaluationController::class, 'statistics'])->name('teacher.statistics.index');
 });
 
 Route::prefix('student')->middleware(['auth', 'role:student'])->group(function () {
     Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('student.dashboard');
+    Route::get('/grades', [StudentController::class, 'grades'])->name('student.grades.index');
+    Route::get('/progress', [StudentController::class, 'progress'])->name('student.progress.index');
+    Route::get('/schedule', [StudentController::class, 'schedule'])->name('student.schedule.index');
+    Route::get('/notifications', [StudentController::class, 'notifications'])->name('student.notifications.index');
     Route::get('/evaluations', [StudentController::class, 'evaluations'])->name('student.evaluations.index');
 });
 
 Route::prefix('parent')->middleware(['auth', 'role:parent'])->group(function () {
     Route::get('/dashboard', [ParentController::class, 'dashboard'])->name('parent.dashboard');
+    Route::get('/children', [ParentController::class, 'children'])->name('parent.children.index');
+    Route::get('/grades', [ParentController::class, 'grades'])->name('parent.grades.index');
+    Route::get('/messages', [ParentController::class, 'messages'])->name('parent.messages.index');
+    Route::get('/appointments', [ParentController::class, 'appointments'])->name('parent.appointments.index');
     Route::get('/children/{studentId}/grades', [ParentController::class, 'childGrades'])->name('parent.children.grades');
     Route::post('/review-requests', [ParentController::class, 'storeReviewRequest'])->name('parent.review-requests.store');
 });
@@ -141,6 +154,7 @@ Route::prefix('admin')->middleware(['auth', 'role:super_admin,school_admin'])->g
     Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/reports/average', [ReportController::class, 'averageGrades'])->name('admin.reports.average');
     Route::get('/reports/classes', [ReportController::class, 'classStats'])->name('admin.reports.classes');
+    Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs.index');
     Route::resource('schools', SchoolController::class)
         ->except(['show'])
         ->names('admin.schools');

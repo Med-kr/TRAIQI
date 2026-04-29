@@ -5,24 +5,12 @@
 @section('content')
     @php
         $kpis = [
-            ['label' => 'Moyenne générale', 'value' => '15.4/20'],
-            ['label' => 'Présence', 'value' => '96%'],
-            ['label' => 'Devoirs à venir', 'value' => '3'],
-            ['label' => 'Notifications nouvelles', 'value' => '5'],
-            ['label' => 'Rang classe', 'value' => '4e'],
-            ['label' => 'Matières validées', 'value' => '8/10'],
-        ];
-
-        $schedule = [
-            ['time' => '08:30', 'subject' => 'Mathématiques', 'room' => 'Salle B12', 'teacher' => 'Mme Chraibi'],
-            ['time' => '10:15', 'subject' => 'Français', 'room' => 'Salle A04', 'teacher' => 'M. El Fassi'],
-            ['time' => '14:00', 'subject' => 'Sciences', 'room' => 'Labo 2', 'teacher' => 'Mme Amrani'],
-        ];
-
-        $grades = [
-            ['subject' => 'Mathématiques', 'grade' => '17/20', 'type' => 'Contrôle continu'],
-            ['subject' => 'Français', 'grade' => '14/20', 'type' => 'Devoir'],
-            ['subject' => 'Anglais', 'grade' => '13/20', 'type' => 'Examen'],
+            ['label' => 'Moyenne générale', 'value' => $averageGrade !== null ? number_format((float) $averageGrade, 2) . '/20' : 'N/A'],
+            ['label' => 'Taux réussite', 'value' => $passRate . '%'],
+            ['label' => 'Évaluations', 'value' => $evaluations->count()],
+            ['label' => 'Notifications nouvelles', 'value' => $unreadNotificationsCount],
+            ['label' => 'Classe', 'value' => $student?->classroom?->name ?? 'N/A'],
+            ['label' => 'Matières', 'value' => $timetableSubjects->count()],
         ];
     @endphp
 
@@ -53,26 +41,28 @@
                 </div>
 
                 <div class="mt-6 space-y-4">
-                    @foreach ($schedule as $item)
+                    @forelse ($timetableSubjects->take(4) as $item)
                         <article class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                    <h3 class="font-semibold text-slate-950">{{ $item['subject'] }}</h3>
-                                    <p class="mt-1 text-sm text-slate-600">{{ $item['room'] }} · {{ $item['teacher'] }}</p>
+                                    <h3 class="font-semibold text-slate-950">{{ $item->name }}</h3>
+                                    <p class="mt-1 text-sm text-slate-600">{{ $student?->classroom?->name ?? 'Classe non définie' }}</p>
                                 </div>
-                                <span class="admin-pill is-success">{{ $item['time'] }}</span>
+                                <span class="admin-pill is-success">Cours</span>
                             </div>
                         </article>
-                    @endforeach
+                    @empty
+                        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">Aucun cours disponible pour ta classe.</div>
+                    @endforelse
                 </div>
             </section>
 
             <section class="admin-card p-6 sm:p-7">
                 <h2 class="text-xl font-semibold text-slate-950">Actions rapides</h2>
                 <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                    <x-button href="#" class="w-full justify-center">Voir notes</x-button>
-                    <x-button href="#" variant="secondary" class="w-full justify-center">Voir emploi du temps</x-button>
-                    <x-button href="#" variant="dark" class="w-full justify-center">Consulter progression</x-button>
+                    <x-button href="{{ route('student.grades.index') }}" class="w-full justify-center">Voir notes</x-button>
+                    <x-button href="{{ route('student.schedule.index') }}" variant="secondary" class="w-full justify-center">Voir emploi du temps</x-button>
+                    <x-button href="{{ route('student.progress.index') }}" variant="dark" class="w-full justify-center">Consulter progression</x-button>
                 </div>
             </section>
         </div>
@@ -84,17 +74,19 @@
                     <span class="admin-pill is-neutral">Récent</span>
                 </div>
                 <div class="mt-6 space-y-4">
-                    @foreach ($grades as $item)
+                    @forelse ($grades->take(5) as $item)
                         <article class="rounded-2xl bg-slate-50 p-4">
                             <div class="flex items-center justify-between gap-4">
                                 <div>
-                                    <h3 class="font-semibold text-slate-950">{{ $item['subject'] }}</h3>
-                                    <p class="mt-1 text-sm text-slate-600">{{ $item['type'] }}</p>
+                                    <h3 class="font-semibold text-slate-950">{{ $item->evaluation?->subject?->name ?? 'Matière' }}</h3>
+                                    <p class="mt-1 text-sm text-slate-600">{{ str_replace('_', ' ', ucfirst($item->evaluation?->type ?? 'Évaluation')) }}</p>
                                 </div>
-                                <span class="text-lg font-semibold text-slate-950">{{ $item['grade'] }}</span>
+                                <span class="text-lg font-semibold text-slate-950">{{ number_format((float) $item->value, 2) }}/20</span>
                             </div>
                         </article>
-                    @endforeach
+                    @empty
+                        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">Aucune note publiée pour le moment.</div>
+                    @endforelse
                 </div>
             </section>
 

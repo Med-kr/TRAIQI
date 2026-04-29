@@ -4,7 +4,7 @@
             <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <a href="{{ route(Auth::user()->dashboardRoute()) }}" class="flex items-center gap-3">
-                        <x-application-logo class="h-14 w-14 rounded-full bg-white/10 p-1.5 shadow-xl" />
+                        <x-application-logo class="h-14 w-14 shadow-xl" />
                         <div class="hidden sm:block">
                             <p class="text-xs font-semibold uppercase tracking-[0.35em] text-sky-100">TRAIQI</p>
                             <p class="font-['Outfit'] text-lg font-semibold text-white">Plateforme educative</p>

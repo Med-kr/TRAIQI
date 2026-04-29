@@ -5,86 +5,63 @@
 @section('content')
     <section class="space-y-6 lg:space-y-8">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#0A4FAF]">Conception d’évaluation</p>
-            <h1 class="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">Créer évaluation</h1>
-            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Préparez une évaluation claire, cohérente et prête à publier avec les paramètres utiles au suivi pédagogique.</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#0A4FAF]">Nouvelle évaluation</p>
+            <h1 class="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">Créer une évaluation</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Choisissez uniquement une classe et une matière qui vous sont affectées.</p>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-            <section class="admin-card p-6 sm:p-7">
-                <form method="POST" action="{{ Route::has('teacher.evaluations.store') ? route('teacher.evaluations.store') : '#' }}" class="grid gap-5">
+        <section class="admin-card p-6 sm:p-7">
+            @if ($assignments->isEmpty())
+                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                    Aucune affectation trouvée. L'administration doit d'abord vous affecter à une classe et une matière.
+                </div>
+            @else
+                <form method="POST" action="{{ route('teacher.evaluations.store') }}" class="grid gap-5 md:grid-cols-2">
                     @csrf
 
-                    <x-input name="title" label="Titre évaluation" placeholder="Devoir surveillé - Chapitre 4" />
-
-                    <div class="grid gap-5 md:grid-cols-2">
-                        <div>
-                            <label class="mb-2 block text-sm font-semibold text-slate-900">Type</label>
-                            <select name="type" class="admin-toolbar-input">
-                                <option>devoir</option>
-                                <option>examen</option>
-                                <option>contrôle continu</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="mb-2 block text-sm font-semibold text-slate-900">Classe</label>
-                            <select name="classroom_id" class="admin-toolbar-input">
-                                <option>1ère Bac Sciences A</option>
-                                <option>2AC-B</option>
-                                <option>Terminale PC</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-5 md:grid-cols-2">
-                        <div>
-                            <label class="mb-2 block text-sm font-semibold text-slate-900">Matière</label>
-                            <select name="subject_id" class="admin-toolbar-input">
-                                <option>Mathématiques</option>
-                                <option>Sciences</option>
-                                <option>Informatique</option>
-                            </select>
-                        </div>
-                        <x-input name="date" type="date" label="Date" />
-                    </div>
-
-                    <div class="grid gap-5 md:grid-cols-2">
-                        <x-input name="max_score" type="number" label="Note maximale (/20)" placeholder="20" />
-                        <x-input name="coefficient" type="number" label="Coefficient" placeholder="2" />
+                    <div class="md:col-span-2">
+                        <x-input-label for="title" value="Titre" />
+                        <x-text-input id="title" name="title" type="text" class="mt-2 block w-full" :value="old('title')" required />
+                        <x-input-error :messages="$errors->get('title')" class="mt-2" />
                     </div>
 
                     <div>
-                        <label class="mb-2 block text-sm font-semibold text-slate-900">Description</label>
-                        <textarea name="description" rows="6" class="admin-toolbar-input" placeholder="Objectifs, consignes, périmètre du devoir..."></textarea>
+                        <x-input-label for="assignment_key" value="Classe et matière" />
+                        <select id="assignment_key" class="admin-toolbar-input mt-2" onchange="const [classroom, subject] = this.value.split('|'); document.getElementById('classroom_id').value = classroom; document.getElementById('subject_id').value = subject;">
+                            @foreach ($assignments as $assignment)
+                                <option value="{{ $assignment->classroom_id }}|{{ $assignment->subject_id }}">
+                                    {{ $assignment->classroom?->name ?? 'Classe' }} - {{ $assignment->subject?->name ?? 'Matière' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input type="hidden" id="classroom_id" name="classroom_id" value="{{ old('classroom_id', $assignments->first()->classroom_id) }}">
+                        <input type="hidden" id="subject_id" name="subject_id" value="{{ old('subject_id', $assignments->first()->subject_id) }}">
+                        <x-input-error :messages="$errors->get('classroom_id')" class="mt-2" />
+                        <x-input-error :messages="$errors->get('subject_id')" class="mt-2" />
                     </div>
 
-                    <div class="flex flex-wrap gap-3">
-                        <x-button type="submit">Publier</x-button>
-                        <x-button type="submit" variant="secondary">Brouillon</x-button>
-                        <x-button href="{{ route('teacher.dashboard') }}" variant="ghost">Annuler</x-button>
+                    <div>
+                        <x-input-label for="date" value="Date" />
+                        <x-text-input id="date" name="date" type="date" class="mt-2 block w-full" :value="old('date', now()->format('Y-m-d'))" required />
+                        <x-input-error :messages="$errors->get('date')" class="mt-2" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="type" value="Type" />
+                        <select id="type" name="type" class="admin-toolbar-input mt-2" required>
+                            <option value="devoir" @selected(old('type') === 'devoir')>Devoir</option>
+                            <option value="examen" @selected(old('type') === 'examen')>Examen</option>
+                            <option value="controle_continu" @selected(old('type') === 'controle_continu')>Contrôle continu</option>
+                        </select>
+                        <x-input-error :messages="$errors->get('type')" class="mt-2" />
+                    </div>
+
+                    <div class="flex items-end gap-3">
+                        <x-button type="submit">Créer</x-button>
+                        <x-button href="{{ route('teacher.dashboard') }}" variant="secondary">Annuler</x-button>
                     </div>
                 </form>
-            </section>
-
-            <aside class="space-y-6">
-                <section class="admin-card p-6 sm:p-7">
-                    <h2 class="text-xl font-semibold text-slate-950">Résumé évaluation</h2>
-                    <div class="mt-6 space-y-4 text-sm text-slate-600">
-                        <p><span class="font-medium text-slate-800">Classe cible:</span> 1ère Bac Sciences A</p>
-                        <p><span class="font-medium text-slate-800">Barème:</span> /20</p>
-                        <p><span class="font-medium text-slate-800">Publication:</span> immédiate ou brouillon</p>
-                    </div>
-                </section>
-
-                <section class="admin-card p-6 sm:p-7">
-                    <h2 class="text-xl font-semibold text-slate-950">Conseils rapides</h2>
-                    <div class="mt-6 space-y-4">
-                        <div class="rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">Définissez un titre clair et une portée précise pour faciliter l’analyse ultérieure.</div>
-                        <div class="rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">Conservez un coefficient cohérent avec le poids pédagogique de l’activité.</div>
-                        <div class="rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">Préférez le brouillon si les critères de notation ne sont pas encore finalisés.</div>
-                    </div>
-                </section>
-            </aside>
-        </div>
+            @endif
+        </section>
     </section>
 @endsection

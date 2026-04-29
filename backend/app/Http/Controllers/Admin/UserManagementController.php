@@ -25,11 +25,14 @@ class UserManagementController extends Controller
         $this->ensurePermission('manage users');
 
         $role = $request->string('role')->value();
+        $status = $request->string('status')->value();
         $search = trim((string) $request->string('search')->value());
 
         $users = User::forSchoolContext($this->currentAdmin())
             ->with(['roles', 'studentProfile.classroom', 'parentProfile', 'teacherProfile', 'children'])
             ->when($role, fn ($query) => $query->role($role))
+            ->when($status === 'active', fn ($query) => $query->where('is_active', true))
+            ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', '%' . $search . '%')
@@ -44,6 +47,7 @@ class UserManagementController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'selectedRole' => $role,
+            'selectedStatus' => $status,
             'search' => $search,
         ]);
     }

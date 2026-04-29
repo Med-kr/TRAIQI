@@ -3,15 +3,6 @@
 @section('title', 'Logs activité')
 
 @section('content')
-    @php
-        $logs = [
-            ['date' => '27 avr. 2026 10:28', 'user' => 'Nadia Chraibi', 'action' => 'Création classe', 'module' => 'Classes', 'ip' => '196.200.120.8', 'status' => 'Succès'],
-            ['date' => '27 avr. 2026 09:54', 'user' => 'Hicham Lamrani', 'action' => 'Import élèves', 'module' => 'Imports', 'ip' => '196.200.120.10', 'status' => 'Succès'],
-            ['date' => '27 avr. 2026 09:12', 'user' => 'Sara B.', 'action' => 'Connexion refusée', 'module' => 'Auth', 'ip' => '105.71.44.30', 'status' => 'Erreur'],
-            ['date' => '26 avr. 2026 17:40', 'user' => 'Meryem El Fassi', 'action' => 'Modification profil', 'module' => 'Utilisateurs', 'ip' => '196.200.121.4', 'status' => 'Succès'],
-        ];
-    @endphp
-
     <section class="space-y-6 lg:space-y-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -24,16 +15,12 @@
         <div class="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
             <div class="space-y-6">
                 <section class="admin-card p-5 sm:p-6">
-                    <div class="grid gap-4 lg:grid-cols-3">
-                        <input type="search" class="admin-toolbar-input" placeholder="Utilisateur">
-                        <select class="admin-toolbar-input">
-                            <option>Toutes les actions</option>
-                            <option>Connexion</option>
-                            <option>Import</option>
-                            <option>Modification</option>
-                        </select>
-                        <input type="text" class="admin-toolbar-input" placeholder="Date">
-                    </div>
+                    <form method="GET" action="{{ route('admin.logs.index') }}" class="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                        <input type="search" name="user" value="{{ $filters['user'] ?? '' }}" class="admin-toolbar-input" placeholder="Utilisateur">
+                        <input type="search" name="action" value="{{ $filters['action'] ?? '' }}" class="admin-toolbar-input" placeholder="Action">
+                        <input type="date" name="date" value="{{ $filters['date'] ?? '' }}" class="admin-toolbar-input">
+                        <button type="submit" class="rounded-2xl bg-[#083B82] px-5 py-3 text-sm font-semibold text-white shadow-sm">Filtrer</button>
+                    </form>
                 </section>
 
                 <section class="admin-table-wrap">
@@ -44,25 +31,30 @@
                                     <th>Date</th>
                                     <th>Utilisateur</th>
                                     <th>Action</th>
-                                    <th>Module</th>
-                                    <th>IP</th>
-                                    <th>Status</th>
+                                    <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
-                                @foreach ($logs as $log)
+                                @forelse ($logs as $log)
                                     <tr class="transition hover:bg-slate-50/80">
-                                        <td>{{ $log['date'] }}</td>
-                                        <td class="font-semibold text-slate-950">{{ $log['user'] }}</td>
-                                        <td>{{ $log['action'] }}</td>
-                                        <td>{{ $log['module'] }}</td>
-                                        <td>{{ $log['ip'] }}</td>
-                                        <td><span class="admin-pill {{ $log['status'] === 'Succès' ? 'is-success' : 'is-warning' }}">{{ $log['status'] }}</span></td>
+                                        <td>{{ $log->created_at?->format('d/m/Y H:i') }}</td>
+                                        <td class="font-semibold text-slate-950">{{ $log->user?->name ?? 'Système' }}</td>
+                                        <td><span class="admin-pill is-neutral">{{ $log->action }}</span></td>
+                                        <td>{{ $log->description ?: 'Aucune description' }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500">Aucun log trouvé.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+                    @if($logs->hasPages())
+                        <div class="border-t border-slate-100 px-4 py-4">
+                            {{ $logs->links() }}
+                        </div>
+                    @endif
                 </section>
             </div>
 
@@ -71,20 +63,20 @@
                     <h2 class="text-xl font-semibold text-slate-950">Résumé</h2>
                     <div class="mt-6 grid gap-4">
                         <div class="rounded-2xl bg-slate-50 p-4">
-                            <p class="text-sm text-slate-500">Connexions today</p>
-                            <p class="mt-2 text-3xl font-semibold text-slate-950">248</p>
+                            <p class="text-sm text-slate-500">Actions aujourd’hui</p>
+                            <p class="mt-2 text-3xl font-semibold text-slate-950">{{ $todayCount }}</p>
                         </div>
                         <div class="rounded-2xl bg-slate-50 p-4">
-                            <p class="text-sm text-slate-500">Imports today</p>
-                            <p class="mt-2 text-3xl font-semibold text-slate-950">5</p>
+                            <p class="text-sm text-slate-500">Imports aujourd’hui</p>
+                            <p class="mt-2 text-3xl font-semibold text-slate-950">{{ $importsTodayCount }}</p>
                         </div>
                         <div class="rounded-2xl bg-slate-50 p-4">
-                            <p class="text-sm text-slate-500">Errors</p>
-                            <p class="mt-2 text-3xl font-semibold text-slate-950">3</p>
+                            <p class="text-sm text-slate-500">Utilisateurs tracés</p>
+                            <p class="mt-2 text-3xl font-semibold text-slate-950">{{ $usersWithLogsCount }}</p>
                         </div>
                         <div class="rounded-2xl bg-slate-50 p-4">
                             <p class="text-sm text-slate-500">Actions sensibles</p>
-                            <p class="mt-2 text-3xl font-semibold text-slate-950">18</p>
+                            <p class="mt-2 text-3xl font-semibold text-slate-950">{{ $sensitiveTodayCount }}</p>
                         </div>
                     </div>
                 </section>

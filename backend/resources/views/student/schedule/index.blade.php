@@ -4,26 +4,19 @@
 
 @section('content')
     @php
-        $days = [
-            'Lundi' => [
-                ['time' => '08:30', 'subject' => 'Mathématiques', 'room' => 'B12', 'teacher' => 'Mme Chraibi'],
-                ['time' => '10:15', 'subject' => 'Français', 'room' => 'A04', 'teacher' => 'M. El Fassi'],
-            ],
-            'Mardi' => [
-                ['time' => '09:00', 'subject' => 'Sciences', 'room' => 'Labo 2', 'teacher' => 'Mme Amrani'],
-                ['time' => '13:30', 'subject' => 'Anglais', 'room' => 'C08', 'teacher' => 'M. Karim'],
-            ],
-            'Mercredi' => [
-                ['time' => '08:30', 'subject' => 'Arabe', 'room' => 'A02', 'teacher' => 'Mme Tazi'],
-            ],
-            'Jeudi' => [
-                ['time' => '10:00', 'subject' => 'Informatique', 'room' => 'Salle Info', 'teacher' => 'M. Saïd'],
-            ],
-            'Vendredi' => [
-                ['time' => '11:00', 'subject' => 'Histoire-Géo', 'room' => 'C01', 'teacher' => 'Mme Idrissi'],
-            ],
-            'Samedi' => [],
-        ];
+        $days = collect(['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'])
+            ->mapWithKeys(fn ($day, $index) => [
+                $day => $timetableSubjects
+                    ->values()
+                    ->filter(fn ($subject, $subjectIndex) => $subjectIndex % 6 === $index)
+                    ->map(fn ($subject) => [
+                        'time' => '08:30',
+                        'subject' => $subject->name,
+                        'room' => $student?->classroom?->name ?? 'Classe',
+                        'teacher' => 'Enseignant',
+                    ])
+                    ->values(),
+            ]);
     @endphp
 
     <section class="space-y-6 lg:space-y-8" x-data="{ openDay: 'Lundi' }">
@@ -90,7 +83,7 @@
                 <h2 class="text-xl font-semibold text-slate-950">Téléchargement</h2>
                 <p class="mt-3 text-sm leading-7 text-slate-600">Préparer une version imprimable ou exportable de l’emploi du temps.</p>
                 <div class="mt-6">
-                    <x-button href="#" variant="secondary">Télécharger / imprimer</x-button>
+                    <x-button type="button" variant="secondary" onclick="window.print()">Télécharger / imprimer</x-button>
                 </div>
             </section>
         </div>

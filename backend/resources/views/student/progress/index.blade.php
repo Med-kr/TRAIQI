@@ -11,7 +11,12 @@
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach ([['Progression annuelle', '78%'], ['Objectifs atteints', '6/8'], ['Assiduité', '96%'], ['Évolution moyenne', '+1.2']] as $item)
+            @php
+                $recentAverage = $grades->take(3)->avg('value');
+                $olderAverage = $grades->slice(3, 3)->avg('value');
+                $evolution = $recentAverage !== null && $olderAverage !== null ? round($recentAverage - $olderAverage, 2) : null;
+            @endphp
+            @foreach ([['Moyenne actuelle', $averageGrade !== null ? number_format((float) $averageGrade, 2) . '/20' : 'N/A'], ['Taux réussite', $passRate . '%'], ['Notes publiées', $grades->count()], ['Évolution moyenne', $evolution !== null ? ($evolution >= 0 ? '+' : '') . $evolution : 'N/A']] as $item)
                 <article class="admin-stat-card">
                     <p class="text-sm font-medium text-slate-500">{{ $item[0] }}</p>
                     <p class="mt-4 text-2xl font-semibold text-slate-950">{{ $item[1] }}</p>
@@ -23,28 +28,34 @@
             <section class="admin-card p-6 sm:p-7">
                 <h2 class="text-xl font-semibold text-slate-950">Progression mensuelle</h2>
                 <div class="mt-8 flex h-64 items-end gap-3 rounded-[1.5rem] bg-slate-50 p-5">
-                    @foreach ([42, 54, 63, 70, 74, 82] as $point)
+                    @forelse ($grades->take(8) as $grade)
+                        @php $point = max(8, min(100, round(($grade->value / 20) * 100))); @endphp
                         <div class="flex flex-1 items-end">
                             <div class="w-full rounded-t-2xl bg-gradient-to-t from-[#083B82] via-[#0A4FAF] to-[#18A558]" style="height: {{ $point }}%"></div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="flex flex-1 items-end"><div class="w-full rounded-t-2xl bg-slate-200" style="height: 8%"></div></div>
+                    @endforelse
                 </div>
             </section>
 
             <section class="admin-card p-6 sm:p-7">
                 <h2 class="text-xl font-semibold text-slate-950">Notes par matière</h2>
                 <div class="mt-6 space-y-5">
-                    @foreach ([['Mathématiques', 84], ['Français', 72], ['Anglais', 65], ['Sciences', 79]] as $item)
+                    @forelse ($subjects as $item)
+                        @php $percent = max(0, min(100, round(($item['avg'] / 20) * 100))); @endphp
                         <div>
                             <div class="mb-2 flex items-center justify-between text-sm">
-                                <span class="font-medium text-slate-700">{{ $item[0] }}</span>
-                                <span class="text-slate-500">{{ $item[1] }}%</span>
+                                <span class="font-medium text-slate-700">{{ $item['name'] }}</span>
+                                <span class="text-slate-500">{{ $percent }}%</span>
                             </div>
                             <div class="h-3 rounded-full bg-slate-100">
-                                <div class="h-3 rounded-full bg-gradient-to-r from-[#0A4FAF] to-[#18A558]" style="width: {{ $item[1] }}%"></div>
+                                <div class="h-3 rounded-full bg-gradient-to-r from-[#0A4FAF] to-[#18A558]" style="width: {{ $percent }}%"></div>
                             </div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Aucune note disponible.</div>
+                    @endforelse
                 </div>
             </section>
 
@@ -52,12 +63,12 @@
                 <h2 class="text-xl font-semibold text-slate-950">Présence trend</h2>
                 <div class="mt-8 grid grid-cols-2 gap-4">
                     <div class="rounded-2xl bg-slate-50 p-4 text-center">
-                        <p class="text-sm text-slate-500">Présent</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-950">96%</p>
+                        <p class="text-sm text-slate-500">Réussite</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-950">{{ $passRate }}%</p>
                     </div>
                     <div class="rounded-2xl bg-slate-50 p-4 text-center">
-                        <p class="text-sm text-slate-500">Retards</p>
-                        <p class="mt-2 text-2xl font-semibold text-slate-950">2%</p>
+                        <p class="text-sm text-slate-500">Notes</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-950">{{ $grades->count() }}</p>
                     </div>
                 </div>
             </section>

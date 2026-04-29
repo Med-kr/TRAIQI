@@ -49,13 +49,19 @@ class ImportController extends Controller
 
         $school = $this->availableSchools()->firstWhere('id', $schoolId);
 
-        $import = $this->importService->import(
-            $request->file('file'),
-            $validated['type'],
-            $school,
-            $this->currentAdmin(),
-            (int) ($validated['max_students_per_class'] ?? 25)
-        );
+        try {
+            $import = $this->importService->import(
+                $request->file('file'),
+                $validated['type'],
+                $school,
+                $this->currentAdmin(),
+                (int) ($validated['max_students_per_class'] ?? 25)
+            );
+        } catch (\Throwable $exception) {
+            return back()
+                ->withInput()
+                ->withErrors(['file' => $exception->getMessage()]);
+        }
 
         return redirect()
             ->route('admin.imports.index')
