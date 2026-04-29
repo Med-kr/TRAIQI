@@ -11,11 +11,30 @@ class Evaluation extends Model
 
     protected $fillable = [
         'title',
+        'type',
+        'school_id',
         'classroom_id',
         'subject_id',
+        'academic_year_id',
         'teacher_id',
         'date',
+        'is_published',
+        'is_locked',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'date' => 'date',
+            'is_published' => 'boolean',
+            'is_locked' => 'boolean',
+        ];
+    }
+
+    public function school()
+    {
+        return $this->belongsTo(School::class);
+    }
 
     public function classroom()
     {
@@ -32,8 +51,28 @@ class Evaluation extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     public function grades()
     {
         return $this->hasMany(Grade::class);
+    }
+
+    public function scopeForSchoolContext($query, ?User $user = null)
+    {
+        $user ??= auth()->user();
+
+        if (! $user || $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        if (! $user->school_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('school_id', $user->school_id);
     }
 }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogService;
+use App\Services\NotificationService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +18,12 @@ use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
+    public function __construct(
+        protected NotificationService $notificationService,
+        protected AuditLogService $auditLogService,
+    ) {
+    }
+
     /**
      * Display the password reset view.
      */
@@ -49,6 +57,19 @@ class NewPasswordController extends Controller
                 ])->save();
 
                 event(new PasswordReset($user));
+
+                $this->notificationService->sendToUser(
+                    $user,
+                    'Password reset completed',
+                    'Your password has been updated successfully.',
+                    'password_reset'
+                );
+
+                $this->auditLogService->record(
+                    $user,
+                    'password_reset_completed',
+                    sprintf('Password reset completed for user #%d.', $user->id)
+                );
             }
         );
 

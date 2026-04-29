@@ -14,7 +14,13 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        if (! auth()->user()->hasRole(...$roles)) {
+        $allowedRoles = collect($roles)
+            ->flatMap(fn ($role) => preg_split('/[|,]/', $role))
+            ->filter()
+            ->values()
+            ->all();
+
+        if (! auth()->user()->hasAnyRole($allowedRoles)) {
             abort(403);
         }
 

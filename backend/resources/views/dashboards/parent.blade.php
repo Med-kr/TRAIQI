@@ -1,81 +1,121 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Parent Dashboard
-                </h2>
-                <p class="mt-1 text-sm text-gray-500">
-                    Follow your children and their latest grades.
-                </p>
+                <span class="chip" x-text="$store.traiqi.t('roles.parent')"></span>
+                <h1 class="text-title mt-4">{{ auth()->user()->name }}</h1>
+                <p class="mt-3 text-soft" x-text="$store.traiqi.t('dashboard.parent_followup')"></p>
             </div>
+            <a href="#requests" class="button-primary" x-text="$store.traiqi.t('dashboard.take_appointment')"></a>
         </div>
     </x-slot>
 
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto space-y-6 sm:px-6 lg:px-8">
-            <div class="grid gap-4 md:grid-cols-2">
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Linked children</p>
-                    <p class="mt-2 text-2xl font-semibold text-gray-900">{{ $childrenCount }}</p>
-                </div>
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Parent account</p>
-                    <p class="mt-2 text-2xl font-semibold text-gray-900">{{ auth()->user()->name }}</p>
-                </div>
-            </div>
+    <div class="grid gap-6">
+        <section class="stats-grid">
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.linked_children')"></p>
+                <p class="stat-number">{{ $childrenCount }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.alerts')"></p>
+                <p class="stat-number">{{ $childrenWithGrades->sum(fn ($entry) => $entry['grades']->where('value', '<', 10)->count()) }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.weekly_progress')"></p>
+                <div class="mt-5 progress-track"><div class="progress-bar" style="width: 73%"></div></div>
+                <p class="mt-3 text-soft">73%</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('common.status')"></p>
+                <span class="badge success" x-text="$store.traiqi.t('status.good')"></span>
+            </article>
+        </section>
 
-            @if ($childrenWithGrades->isEmpty())
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">No linked children yet.</p>
-                </div>
-            @else
-                @foreach ($childrenWithGrades as $entry)
-                    <div class="rounded-xl bg-white p-6 shadow-sm">
-                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">{{ $entry['child']->name }}</h3>
-                                <p class="text-sm text-gray-500">
-                                    Classroom: {{ $entry['child']->studentProfile?->classroom?->name ?? 'Not assigned yet' }}
-                                </p>
-                            </div>
-                            <div class="text-sm text-gray-600">
-                                Average:
-                                <span class="font-semibold text-gray-900">
-                                    {{ $entry['average'] !== null ? number_format($entry['average'], 2) . '/20' : 'No grades yet' }}
-                                </span>
-                            </div>
+        @forelse ($childrenWithGrades as $entry)
+            @php
+                $criticalCount = $entry['grades']->where('value', '<', 10)->count();
+                $statusClass = $criticalCount > 2 ? 'danger' : ($criticalCount > 0 ? 'warning' : 'success');
+                $statusKey = $criticalCount > 2 ? 'status.danger' : ($criticalCount > 0 ? 'status.warning' : 'status.good');
+                $weeklyAverage = round((($entry['average'] ?? 0) / 20) * 100);
+            @endphp
+            <section class="dashboard-grid">
+                <article class="surface-panel card col-span-12 lg:col-span-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-label" x-text="$store.traiqi.t('roles.student')"></p>
+                            <h2 class="text-section mt-2">{{ $entry['child']->name }}</h2>
+                            <p class="mt-2 text-soft">{{ $entry['child']->studentProfile?->classroom?->name ?? 'N/A' }}</p>
                         </div>
-
-                        @if ($entry['grades']->isEmpty())
-                            <p class="mt-4 text-sm text-gray-500">No grades available for this child yet.</p>
-                        @else
-                            <div class="mt-4 overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Evaluation</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Subject</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Grade</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 bg-white">
-                                        @foreach ($entry['grades'] as $grade)
-                                            <tr>
-                                                <td class="px-4 py-3 text-sm text-gray-900">{{ $grade->evaluation?->title ?? 'N/A' }}</td>
-                                                <td class="px-4 py-3 text-sm text-gray-600">{{ $grade->evaluation?->subject?->name ?? 'N/A' }}</td>
-                                                <td class="px-4 py-3 text-sm text-gray-600">{{ $grade->evaluation?->date ?? 'N/A' }}</td>
-                                                <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ $grade->value }}/20</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
+                        <span class="badge {{ $statusClass }}" x-text="$store.traiqi.t('{{ $statusKey }}')"></span>
                     </div>
-                @endforeach
-            @endif
-        </div>
+
+                    <div class="mt-6 space-y-4">
+                        <div class="alert-card {{ $criticalCount > 2 ? 'is-danger' : ($criticalCount > 0 ? 'is-warning' : '') }}">
+                            <p class="font-semibold" x-text="$store.traiqi.t('dashboard.average')"></p>
+                            <p class="mt-2">{{ $entry['average'] !== null ? number_format($entry['average'], 1) . '/20' : '--' }}</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-soft" x-text="$store.traiqi.t('dashboard.weekly_progress')"></span>
+                                <span>{{ $weeklyAverage }}%</span>
+                            </div>
+                            <div class="mt-3 progress-track"><div class="progress-bar" style="width: {{ $weeklyAverage }}%"></div></div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="surface-panel card col-span-12 lg:col-span-8" id="requests">
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-section" x-text="$store.traiqi.t('dashboard.latest_grades')"></h2>
+                        <a href="#appointment-{{ $entry['child']->id }}" class="button-secondary" x-text="$store.traiqi.t('dashboard.take_appointment')"></a>
+                    </div>
+
+                    <div class="table-shell mt-6">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th x-text="$store.traiqi.t('nav.evaluations')"></th>
+                                    <th x-text="$store.traiqi.t('table.subject')"></th>
+                                    <th x-text="$store.traiqi.t('table.grade')"></th>
+                                    <th x-text="$store.traiqi.t('dashboard.alerts')"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($entry['grades']->take(6) as $grade)
+                                    @php $pendingRequest = $grade->reviewRequests->firstWhere('status', 'pending'); @endphp
+                                    <tr>
+                                        <td>{{ $grade->evaluation?->title ?? 'N/A' }}</td>
+                                        <td>{{ $grade->evaluation?->subject?->name ?? 'N/A' }}</td>
+                                        <td><span class="badge {{ $grade->value >= 14 ? 'success' : ($grade->value >= 10 ? 'warning' : 'danger') }}">{{ $grade->value }}/20</span></td>
+                                        <td>
+                                            @if ($pendingRequest)
+                                                <span class="badge warning">Pending</span>
+                                            @else
+                                                <span class="badge {{ $grade->value < 10 ? 'danger' : 'success' }}" x-text="$store.traiqi.t('{{ $grade->value < 10 ? 'status.warning' : 'status.good' }}')"></span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" x-text="$store.traiqi.t('common.no_data')"></td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if ($entry['grades']->isNotEmpty())
+                        <form id="appointment-{{ $entry['child']->id }}" method="POST" action="{{ route('parent.review-requests.store') }}" class="mt-6 grid gap-4">
+                            @csrf
+                            <input type="hidden" name="student_id" value="{{ $entry['child']->id }}">
+                            <input type="hidden" name="grade_id" value="{{ $entry['grades']->first()->id }}">
+                            <label class="text-label" x-text="$store.traiqi.t('dashboard.take_appointment')"></label>
+                            <textarea name="reason" class="textarea" required>{{ old('student_id') == $entry['child']->id ? old('reason') : '' }}</textarea>
+                            <div><button type="submit" class="button-primary" x-text="$store.traiqi.t('dashboard.take_appointment')"></button></div>
+                        </form>
+                    @endif
+                </article>
+            </section>
+        @empty
+            <section class="surface-panel empty-state" x-text="$store.traiqi.t('common.no_data')"></section>
+        @endforelse
     </div>
 </x-app-layout>

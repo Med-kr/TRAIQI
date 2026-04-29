@@ -2,32 +2,32 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminRole = Role::firstOrCreate(['name' => 'administration']);
-        $studentRole = Role::firstOrCreate(['name' => 'student']);
+        $adminRole = Role::findOrCreate('super_admin', 'web');
+        $studentRole = Role::findOrCreate('student', 'web');
 
         $admin = User::updateOrCreate(
             ['email' => 'admin@test.com'],
             [
                 'uuid' => (string) Str::uuid(),
-                'global_code' => 'ADM001',
+                'global_code' => 'SUP001',
                 'name' => 'Admin',
                 'password' => Hash::make('123456'),
                 'school_id' => null,
                 'level_id' => null,
             ]
         );
-        $admin->roles()->syncWithoutDetaching([$adminRole->id]);
+        $admin->syncRoles([$adminRole]);
 
         $user = User::updateOrCreate(
             ['email' => 'user@test.com'],
@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
                 'level_id' => null,
             ]
         );
-        $user->roles()->syncWithoutDetaching([$studentRole->id]);
+        $user->syncRoles([$studentRole]);
         StudentProfile::firstOrCreate(['user_id' => $user->id]);
     }
 }

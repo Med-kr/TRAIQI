@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
+
+    protected string $guard_name = 'web';
 
     protected $fillable = [
         'uuid',
@@ -18,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_active',
         'school_id',
         'level_id',
         'remember_token',
@@ -32,6 +36,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -44,11 +49,6 @@ class User extends Authenticatable
             $user->uuid ??= (string) Str::uuid();
             $user->global_code ??= 'USR-' . random_int(100000, 999999);
         });
-    }
-
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class);
     }
 
     public function studentProfile()
@@ -106,29 +106,43 @@ class User extends Authenticatable
         return $this->belongsTo(Level::class);
     }
 
-    public function hasRole(string ...$roles): bool
+    public function scopeForSchoolContext($query, ?self $user = null)
     {
-        $allowed = collect($roles)->map(fn ($role) => $this->normalizeRoleName($role));
-        $owned = $this->roles()
-            ->pluck('name')
-            ->map(fn ($role) => $this->normalizeRoleName($role));
+        $user ??= auth()->user();
 
-        return $owned->intersect($allowed)->isNotEmpty();
+        if (! $user || $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        if (! $user->school_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('school_id', $user->school_id);
     }
 
     public function primaryRole(): ?string
     {
-        $role = $this->roles()
-            ->orderBy('roles.id')
-            ->value('name');
+        $ownedRoles = $this->getRoleNames();
 
-        return $role ? $this->normalizeRoleName($role) : null;
+        foreach (['super_admin', 'school_admin', 'teacher', 'parent', 'student'] as $role) {
+            if ($ownedRoles->contains($role)) {
+                return $role;
+            }
+        }
+
+        return $ownedRoles->first();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasAnyRole(['super_admin', 'school_admin']);
     }
 
     public function dashboardRoute(): string
     {
         return match ($this->primaryRole()) {
-            'administration' => 'administration.dashboard',
+            'super_admin', 'school_admin' => 'admin.dashboard',
             'teacher' => 'teacher.dashboard',
             'parent' => 'parent.dashboard',
             'student' => 'student.dashboard',
@@ -141,10 +155,5 @@ class User extends Authenticatable
         return Attribute::make(
             get: fn () => $this->primaryRole()
         );
-    }
-
-    private function normalizeRoleName(string $role): string
-    {
-        return $role === 'admin' ? 'administration' : $role;
     }
 }

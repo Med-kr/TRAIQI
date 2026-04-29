@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,9 +14,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(protected AuditLogService $auditLogService)
+    {
+    }
+
     /**
      * Display the registration view.
      */
@@ -44,11 +49,17 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $studentRole = Role::firstOrCreate(['name' => 'student']);
-        $user->roles()->syncWithoutDetaching([$studentRole->id]);
+        Role::findOrCreate('student', 'web');
+        $user->assignRole('student');
         StudentProfile::firstOrCreate(['user_id' => $user->id]);
 
         event(new Registered($user));
+
+        $this->auditLogService->record(
+            $user,
+            'account_registered',
+            sprintf('User #%d registered with self-service flow.', $user->id)
+        );
 
         Auth::login($user);
 

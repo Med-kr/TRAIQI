@@ -1,76 +1,122 @@
+@php
+    $subjectProgress = $grades
+        ->groupBy(fn ($grade) => $grade->evaluation?->subject?->name ?? 'N/A')
+        ->map(fn ($items) => round(($items->avg('value') / 20) * 100))
+        ->take(5);
+
+    $resourceCards = [
+        ['title' => 'Maths Lab', 'copy' => 'Fiches de renforcement et quiz ciblés.'],
+        ['title' => 'Langues', 'copy' => 'Compréhension orale et écrite avec défis courts.'],
+        ['title' => 'Sciences', 'copy' => 'Capsules et expériences guidées.'],
+    ];
+@endphp
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Student Dashboard
-                </h2>
-                <p class="mt-1 text-sm text-gray-500">
-                    Welcome back, {{ auth()->user()->name }}.
+                <span class="chip" x-text="$store.traiqi.t('roles.student')"></span>
+                <h1 class="text-title mt-4">
+                    <span x-text="$store.traiqi.t('dashboard.hello')"></span> {{ auth()->user()->name }} 👋
+                </h1>
+                <p class="mt-3 text-soft">
+                    <span x-text="$store.traiqi.t('dashboard.week')"></span> {{ now()->format('d/m/Y') }}
                 </p>
+            </div>
+            <div class="glass-card max-w-md">
+                <p class="text-label" x-text="$store.traiqi.t('app.slogan')"></p>
+                <div class="mt-4 progress-track"><div class="progress-bar" style="width: 78%"></div></div>
+                <p class="mt-3 text-soft">78%</p>
             </div>
         </div>
     </x-slot>
 
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto space-y-6 sm:px-6 lg:px-8">
-            <div class="grid gap-4 md:grid-cols-3">
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Classroom</p>
-                    <p class="mt-2 text-2xl font-semibold text-gray-900">
-                        {{ $student?->classroom?->name ?? 'Not assigned yet' }}
-                    </p>
-                </div>
+    <div class="grid gap-6">
+        <section class="stats-grid">
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.average')"></p>
+                <p class="stat-number">{{ $averageGrade !== null ? number_format($averageGrade, 1) : '--' }}@if($averageGrade !== null)/20@endif</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.next_exams')"></p>
+                <p class="stat-number">{{ $evaluations->take(3)->count() }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('dashboard.month_goal')"></p>
+                <div class="mt-5 progress-track"><div class="progress-bar" style="width: 78%"></div></div>
+                <p class="mt-3 text-soft">78%</p>
+            </article>
+            <article class="metric-card">
+                <p class="text-label" x-text="$store.traiqi.t('table.classroom')"></p>
+                <p class="stat-number" style="font-size:2rem">{{ $student?->classroom?->name ?? 'N/A' }}</p>
+            </article>
+        </section>
 
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Evaluations</p>
-                    <p class="mt-2 text-2xl font-semibold text-gray-900">
-                        {{ $evaluations->count() }}
-                    </p>
+        <section class="dashboard-grid">
+            <article class="surface-panel card col-span-12 lg:col-span-7">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-section" x-text="$store.traiqi.t('dashboard.subject_progress')"></h2>
+                    <span class="badge success">{{ $grades->count() }} notes</span>
                 </div>
-
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <p class="text-sm text-gray-500">Average grade</p>
-                    <p class="mt-2 text-2xl font-semibold text-gray-900">
-                        {{ $averageGrade !== null ? number_format($averageGrade, 2) . '/20' : 'No grades yet' }}
-                    </p>
+                <div class="mini-bars mt-6">
+                    @forelse ($subjectProgress as $subject => $progress)
+                        <div class="mini-bar-row">
+                            <div class="flex items-center justify-between gap-3">
+                                <span>{{ $subject }}</span>
+                                <span class="text-soft">{{ $progress }}%</span>
+                            </div>
+                            <div class="progress-track"><div class="progress-bar" style="width: {{ $progress }}%"></div></div>
+                        </div>
+                    @empty
+                        <div class="empty-state" x-text="$store.traiqi.t('common.no_data')"></div>
+                    @endforelse
                 </div>
-            </div>
+            </article>
 
-            <div class="rounded-xl bg-white p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900">Recent grades</h3>
+            <article class="surface-panel card col-span-12 lg:col-span-5">
+                <h2 class="text-section" x-text="$store.traiqi.t('dashboard.recommended_resources')"></h2>
+                <div class="mt-6 space-y-4">
+                    @foreach ($resourceCards as $resource)
+                        <div class="alert-card">
+                            <p class="font-semibold">{{ $resource['title'] }}</p>
+                            <p class="mt-2 text-soft">{{ $resource['copy'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </article>
+
+            <article class="surface-panel col-span-12">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-section" x-text="$store.traiqi.t('dashboard.latest_grades')"></h2>
+                    <span class="badge">{{ $grades->count() }}</span>
+                </div>
 
                 @if ($grades->isEmpty())
-                    <p class="mt-4 text-sm text-gray-500">No grades available yet.</p>
+                    <div class="empty-state" x-text="$store.traiqi.t('common.no_data')"></div>
                 @else
-                    <div class="mt-4 overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                    <div class="table-shell mt-6">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Evaluation</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Subject</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Grade</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Comments</th>
+                                    <th x-text="$store.traiqi.t('nav.evaluations')"></th>
+                                    <th x-text="$store.traiqi.t('table.subject')"></th>
+                                    <th x-text="$store.traiqi.t('table.date')"></th>
+                                    <th x-text="$store.traiqi.t('table.grade')"></th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                @foreach ($grades as $grade)
+                            <tbody>
+                                @foreach ($grades->take(8) as $grade)
                                     <tr>
-                                        <td class="px-4 py-3 text-sm text-gray-900">{{ $grade->evaluation?->title ?? 'N/A' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $grade->evaluation?->subject?->name ?? 'N/A' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $grade->evaluation?->date ?? 'N/A' }}</td>
-                                        <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ $grade->value }}/20</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600">
-                                            {{ $grade->comments->pluck('comment')->implode(' | ') ?: 'No comment' }}
-                                        </td>
+                                        <td>{{ $grade->evaluation?->title ?? 'N/A' }}</td>
+                                        <td>{{ $grade->evaluation?->subject?->name ?? 'N/A' }}</td>
+                                        <td>{{ $grade->evaluation?->date ?? 'N/A' }}</td>
+                                        <td><span class="badge {{ $grade->value >= 14 ? 'success' : ($grade->value >= 10 ? 'warning' : 'danger') }}">{{ $grade->value }}/20</span></td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
                 @endif
-            </div>
-        </div>
+            </article>
+        </section>
     </div>
 </x-app-layout>

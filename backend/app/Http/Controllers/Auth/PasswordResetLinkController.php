@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\AuditLogService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -11,6 +14,12 @@ use Illuminate\View\View;
 
 class PasswordResetLinkController extends Controller
 {
+    public function __construct(
+        protected NotificationService $notificationService,
+        protected AuditLogService $auditLogService,
+    ) {
+    }
+
     /**
      * Display the password reset link request view.
      */
@@ -36,6 +45,25 @@ class PasswordResetLinkController extends Controller
         $status = Password::sendResetLink(
             $request->only('email')
         );
+
+        if ($status == Password::RESET_LINK_SENT) {
+            $user = User::query()->where('email', $request->string('email')->toString())->first();
+
+            if ($user) {
+                $this->notificationService->sendToUser(
+                    $user,
+                    'Password reset requested',
+                    'A password reset request was initiated for your account.',
+                    'password_reset'
+                );
+
+                $this->auditLogService->record(
+                    $user,
+                    'password_reset_requested',
+                    sprintf('Password reset requested for user #%d.', $user->id)
+                );
+            }
+        }
 
         return $status == Password::RESET_LINK_SENT
                     ? back()->with('status', __($status))

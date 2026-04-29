@@ -14,7 +14,7 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        if (! auth()->user()->hasRole('administration')) {
+        if (! auth()->user()->hasAnyRole(['super_admin', 'school_admin'])) {
             abort(403);
         }
 

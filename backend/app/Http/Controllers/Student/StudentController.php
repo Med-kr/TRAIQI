@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Grade;
 use App\Models\Evaluation;
+use App\Models\Notification;
 
 class StudentController extends Controller
 {
@@ -23,11 +24,14 @@ class StudentController extends Controller
             ->latest('date')
             ->get();
 
-        return view('dashboards.student', [
+        return view('student.dashboard', [
             'student' => $student,
             'grades' => $grades,
             'evaluations' => $evaluations,
             'averageGrade' => $grades->avg('value'),
+            'passRate' => $grades->count() > 0 ? round(($grades->where('value', '>=', 10)->count() / $grades->count()) * 100, 2) : 0,
+            'unreadNotificationsCount' => Notification::where('user_id', $user->id)->where('read', false)->count(),
+            'timetableSubjects' => $student?->classroom?->subjects()->orderBy('name')->get() ?? collect(),
         ]);
     }
 

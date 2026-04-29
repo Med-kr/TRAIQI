@@ -9,7 +9,7 @@ class Classroom extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'school_id', 'level_id'];
+    protected $fillable = ['name', 'school_id', 'academic_year_id', 'level_id'];
 
     public function school()
     {
@@ -21,6 +21,11 @@ class Classroom extends Model
         return $this->belongsTo(Level::class);
     }
 
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     public function students()
     {
         return $this->hasMany(StudentProfile::class);
@@ -28,7 +33,7 @@ class Classroom extends Model
 
     public function subjects()
     {
-        return $this->belongsToMany(Subject::class);
+        return $this->belongsToMany(Subject::class)->withTimestamps();
     }
 
     public function evaluations()
@@ -36,4 +41,18 @@ class Classroom extends Model
         return $this->hasMany(Evaluation::class);
     }
 
+    public function scopeForSchoolContext($query, ?User $user = null)
+    {
+        $user ??= auth()->user();
+
+        if (! $user || $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        if (! $user->school_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('school_id', $user->school_id);
+    }
 }

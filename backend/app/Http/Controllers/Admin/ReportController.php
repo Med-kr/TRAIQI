@@ -13,18 +13,30 @@ class ReportController extends Controller
     // dashboard stats
     public function index()
     {
-        return response()->json([
-            'total_users' => User::count(),
-            'total_evaluations' => Evaluation::count(),
-            'total_grades' => Grade::count(),
-            'total_classes' => Classroom::count(),
+        $user = auth()->user();
+
+        $payload = [
+            'total_users' => User::forSchoolContext($user)->count(),
+            'total_evaluations' => Evaluation::forSchoolContext($user)->count(),
+            'total_grades' => Grade::forSchoolContext($user)->count(),
+            'total_classes' => Classroom::forSchoolContext($user)->count(),
+        ];
+
+        if (request()->expectsJson()) {
+            return response()->json($payload);
+        }
+
+        return view('admin.reports.index', [
+            'reportStats' => $payload,
+            'averageGrade' => round(Grade::forSchoolContext($user)->avg('value') ?? 0, 2),
+            'classrooms' => Classroom::forSchoolContext($user)->withCount('students')->get(),
         ]);
     }
 
     // moyenne générale
     public function averageGrades()
     {
-        $average = Grade::avg('value');
+        $average = Grade::forSchoolContext(auth()->user())->avg('value');
 
         return response()->json([
             'average_grade' => round($average, 2)
@@ -34,7 +46,9 @@ class ReportController extends Controller
     // classes performance
     public function classStats()
     {
-        $stats = Classroom::withCount('students')->get();
+        $stats = Classroom::forSchoolContext(auth()->user())
+            ->withCount('students')
+            ->get();
 
         return response()->json($stats);
     }

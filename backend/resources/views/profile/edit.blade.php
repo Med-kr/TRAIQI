@@ -1,29 +1,35 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
+        <div>
+            <p class="text-label">{{ __('ui.profile.title') }}</p>
+            <h1 class="mt-2 text-title">{{ __('ui.profile.subtitle') }}</h1>
+        </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
+    <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <x-ui.card>
+            <p class="text-label">{{ __('ui.nav.profile') }}</p>
+            <div class="mt-5 flex items-center gap-4">
+                <span class="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-traiqi-blue to-traiqi-green text-xl font-semibold text-white">
+                    {{ \Illuminate\Support\Str::of(auth()->user()->name)->explode(' ')->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}
+                </span>
+                <div>
+                    <p class="text-section">{{ auth()->user()->name }}</p>
+                    <p class="text-soft">{{ auth()->user()->email }}</p>
                 </div>
             </div>
+        </x-ui.card>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+        <div class="space-y-6">
+            <x-ui.card>
+                @include('profile.partials.update-profile-information-form')
+            </x-ui.card>
+            <x-ui.card>
+                @include('profile.partials.update-password-form')
+            </x-ui.card>
+            <x-ui.card>
+                @include('profile.partials.delete-user-form')
+            </x-ui.card>
         </div>
     </div>
 </x-app-layout>
